@@ -25,13 +25,13 @@ set PES=''   # use default number of processors
 set EXP=rf01.cosp
 
 set RUN_TYPE=hybrid
-set RUN_STARTDATE=2018-01-18
+set RUN_STARTDATE=2018-01-15
 set STOP_OPTION=ndays
 set STOP_N=3
 set REST_OPTION=${STOP_OPTION}
 set REST_N=${STOP_N}
 set RUN_REFCASE=f.e30.cam6_4_120.FHIST_BGC.ne30_ne30_mg17.SOCRATES_nudgeUVTQsoc_full_withCOSP_tau6h_2months_inithist.100.cosp
-set RUN_REFDATE=2018-01-18
+set RUN_REFDATE=2018-01-15
 set RUN_REFDIR=/glade/derecho/scratch/$USER/cases/${RUN_REFCASE}/run
 set GET_REFCASE=TRUE
 
@@ -132,7 +132,7 @@ avgflag_pertape = 'I','I','I'
 mfilt               =       48,     48,     48
 nhtfrq              =        1,     1,     1
 write_nstep0           = .true.
-ncdata='/glade/derecho/scratch/jet/f.e30.cam6_4_120.FHIST_BGC.ne30_ne30_mg17.SOCRATES_nudgeUVTQsoc_full_withCOSP_tau6h_2months_inithist.100.cosp.cam.i.2018-01-18-00000.nc'
+ncdata='/glade/derecho/scratch/jet/f.e30.cam6_4_120.FHIST_BGC.ne30_ne30_mg17.SOCRATES_nudgeUVTQsoc_full_withCOSP_tau6h_2months_inithist.100.cosp.cam.i.2018-01-15-00000.nc'
 inithist_all = .true.
 
 interpolate_output  =  .true.,  .false., .false.,  .false., .false.,   .false.,     .false.
