@@ -29,7 +29,7 @@ where ###### is the Job ID from qstat. Before you can run again, you may need to
 # Errors
 
 ## Job exceeded resource walltime
-The error is saying the jobs did not specify a long enough queue slot and the it ran out of time before finishing. To determine how much time you need, look in the run/ subdir of your case, which can be found under `/glade/derecho/scratch/<username>/cases`. The queue length (JOB_WALLCLOCK_TIME) is set in the `env_workflow.xml` file in the case directory. Examine the times for the daily files that were written out before the job failed. That, plus your JOB_WALLCLOCK_TIME should give you an idea of how much more time you need. You can also look at the log `run.<casename>` for additional useful info.
+The error is saying the jobs did not specify a long enough queue slot and the it ran out of time before finishing. To determine how much time you need, look in the run/ subdir of your case, which can be found under `/glade/derecho/scratch/<username>/cases`. The queue length (JOB_WALLCLOCK_TIME) is set in the `env_workflow.xml` file in the case directory. Examine the times for the daily files that were written out before the job failed. That, plus your JOB_WALLCLOCK_TIME should give you an idea of how much more time you need. You can also look at the log `atm.log.#######*` for additional useful info.
 
 You have two options:
 
