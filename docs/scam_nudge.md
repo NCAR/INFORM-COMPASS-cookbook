@@ -117,23 +117,25 @@ set GET_REFCASE=TRUE
     <strong> Note:</strong> We should change exp 2 to write out a number of days of data to the iop history file.  Here we only copy the first days worth of data to the IOP file and only run the SCAM case for 47 timesteps.  We have 3 individual days of IOP data, we could cat them all together and copy that large IOP file over to SCRATCH or just have exp 2 write a number of days worth of data in one history file.
   </p>
 </div>
-* Copy the IOP file from exp 2 for the correct dates to $SCRATCH and modify the CAM namelist variable iopfile to point to the copied IOP file.
-* modify create_CAM6_ne30_SCAM_RUN script to set REFCASE variables, paths, and dates as done for step 6.
-* set PTS_LAT and PTS_LON variables in the script to point to the column you would like to simulate.  NOTE the PTS_LAT and PTS_LON should point to a column in SOCRATES area these are not.  I'll have to rerun with something along the RF01 flight path.
+* Copy the IOP file from exp 2 for the correct dates to $SCRATCH
 ```tcsh
-> cp /glade/derecho/scratch/$USER/cases/f.e30.cam6_4_120.FHIST_BGC.ne30_ne30_mg17.SOCRATES_nudgeUVTQwindow_withCOSP_tau6h_3days_camiop.rf01.cosp.cam.h0i.2018-01-15-00000.nc /glade/derecho/scratch/$USER/r01.IOP.nc'
+> cp /glade/derecho/scratch/$USER/cases/f.e30.cam6_4_120.FHIST_BGC.ne30_ne30_mg17.SOCRATES_nudgeUVTQwindow_withCOSP_tau6h_3days_camiop.rf01.cosp/run/f.e30.cam6_4_120.FHIST_BGC.ne30_ne30_mg17.SOCRATES_nudgeUVTQwindow_withCOSP_tau6h_3days_camiop.rf01.cosp.cam.h0i.2018-01-15-00000.nc /glade/derecho/scratch/$USER/rf01.IOP.nc
+```
+* modify create_CAM6_ne30_SCAM_RUN script to set REFCASE variables, paths, and dates as done for the second experiment.
+* set PTS_LAT and PTS_LON variables in the script to point to the column you would like to simulate. The PTS_LAT and PTS_LON should point to a column in SOCRATES area.
+```tcsh
 > cd $HOME/collections/INFORM-COMPASS-cookbook/SCAM_scripts
 > emacs create_CAM6_ne30_SCAM_RUN
 ```
 * modify the following line to point to your iop file
 ```tcsh
-iopfile = '/glade/derecho/scratch/jet/rf01.IOP.nc'
+iopfile = '/glade/derecho/scratch/$USER/rf01.IOP.nc'
 ```
 
-* modify PTS_LAT and PTS_LON to point to the column you want to simulate
+* modify PTS_LAT and PTS_LON to point to the column you want to simulate. To find a lat/lon along the flight track for this flight, visit the [SOCRATES catalog maps](catalog.eol.ucar.edu/maps/socrates) and use the playback functionality to set the Date / Time to the end of the flight. Click on a wind barb on the flight track to see the lat/lon at that location. The following is a lat/lon from the return leg where it doglegs to the left.
 ```
-set PTS_LON=276.7082039324993
-set PTS_LAT=44.80320177421346
+set PTS_LON=152.658997
+set PTS_LAT=-54.957001
 ```
 
 1. Run SCAM
