@@ -83,6 +83,7 @@ You can check the status of the run, or delete it, using the scam commands descr
 > cd /glade/derecho/scratch/$USER/cases/f.e30.cam6_4_120.FHIST_BGC.ne30_ne30_mg17.SOCRATES_nudgeUVTQsoc_full_withCOSP_tau6h_2months_inithist.100.cosp/run
 > ls -al *.cam.h*
 ```
+
 ## Run the second experiment
 
 1. Set up the second experiment to generate the IOP data for the SCAM run.
@@ -114,7 +115,7 @@ set GET_REFCASE=TRUE
 1. Set up for the third experiment
 <div style="padding: 16px; margin-bottom: 16pt; border-left: .25em solid #0969da; background-color: #f0f7ff; border-radius: 6px;">
   <p style="margin-top: 4px; margin-bottom: 0; color: #0969da;">
-    <strong> Note:</strong> We should change exp 2 to write out a number of days of data to the iop history file.  Here we only copy the first days worth of data to the IOP file and only run the SCAM case for 47 timesteps.  We have 3 individual days of IOP data, we could cat them all together and copy that large IOP file over to SCRATCH or just have exp 2 write a number of days worth of data in one history file.
+    <strong>Note:</strong> We should change exp 2 to write out a number of days of data to the iop history file.  Here we only copy the first days worth of data to the IOP file and only run the SCAM case for 47 timesteps.  We have 3 individual days of IOP data, we could cat them all together and copy that large IOP file over to SCRATCH or just have exp 2 write a number of days worth of data in one history file.
   </p>
 </div>
 * Copy the IOP file from exp 2 for the correct dates to $SCRATCH
