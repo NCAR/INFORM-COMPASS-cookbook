@@ -126,7 +126,7 @@ set RUNDIR=${CASEDIR}/${CASENAME}/run
 # Namelist setup
 #------------------
 
-cat >> user_nl_cam << EOF
+cat > user_nl_cam << EOF
 inithist = 'CAMIOP'
 avgflag_pertape = 'I','I','I'
 mfilt               =       48,     48,     48
@@ -230,7 +230,7 @@ tracer_cnst_file               = 'tracer_cnst_halons_3D_L70_1849-2101_CMIP6ensAv
 EOF
 
 
-cat >> user_nl_clm << EOFclm
+cat > user_nl_clm << EOFclm
  model_year_align_ndep = 2015
  ndep_taxmode = 'cycle'
  ndep_varlist = 'NDEP_month'
@@ -256,7 +256,7 @@ flanduse_timeseries = '/glade/p/cesmdata/cseg/inputdata/lnd/clm2/surfdata_esmf/c
 use_init_interp=.true.
 EOFclm
 
-#cat >> user_nl_cpl << EOFcpl
+#cat > user_nl_cpl << EOFcpl
 #reprosum_diffmax=1.0e-14
 #reprosum_recompute=.true.
 #EOFcpl
