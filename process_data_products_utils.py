@@ -6,7 +6,11 @@ import xarray as xr
 import datetime
 from scipy.spatial import cKDTree
 from datetime import time
-from tqdm.notebook import tqdm, trange
+from tqdm.notebook import tqdm, trange  
+import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap, BoundaryNorm
+import matplotlib.dates as mdates
+import matplotlib.gridspec as gridspec
 
 def assign_flight_type(df):
     """
@@ -362,9 +366,9 @@ def block_flight(df):
     - Only level flights lasting more than 180 seconds are included in 'Out-of-cloud Level FT'.
     - Profile flights are only included if their altitude change is greater than 30 meters.
     """
-    # Find level BL periods
+    # ---------- Level BL periods (KEEP ALL) ----------
     out_of_cloud_bl = df[(df['Location'] == 'BL') & (df['flight_type'] == 'level')]
-    bl_ids = sorted(out_of_cloud_bl['block_id'].unique())[1:-1] if len(out_of_cloud_bl['block_id'].unique()) > 2 else []
+    bl_ids = sorted(out_of_cloud_bl['block_id'].unique())
     bl_blocks_ds = [df[df['block_id'] == i] for i in bl_ids]
     
     # Find In-Cloud profile periods
@@ -515,7 +519,7 @@ def VAP_process_flight_data(df,i):
     # plot_hcr_cloud_type(df_mod,flight_block_comp,i)
     return flight_blocks
 
-def select_ERA5_4flight(df,campaign):
+def select_ERA5_4flight(df, campaign, dat_type="aircraft"):
     # Define function to filter ERA5 files based on time
     def get_matching_files(pattern, start_dt, end_dt):
         file_list = glob.glob(pattern)
@@ -536,118 +540,128 @@ def select_ERA5_4flight(df,campaign):
     start_hour, end_hour = df.Time[0].hour, df.Time.iloc[-1].hour
     
     # Select the latitude/longitude box to reduce size of era5 data
-    lat_max, lat_min = np.floor(df.GGLAT.min()), np.ceil(df.GGLAT.max())
     if campaign == 'SOCRATES':
-        lon_adj = 180
-    elif campaign  == 'CSET':
-        lon_adj = 360
-    lon_min, lon_max = np.floor(df.GGLON.min())+lon_adj, np.ceil(df.GGLON.max())+lon_adj
+        lat_max, lat_min = np.floor(df.GGLAT.min()), np.ceil(df.GGLAT.max())
+    elif campaign == 'CSET':
+        lat_min, lat_max = np.floor(df.GGLAT.min()), np.ceil(df.GGLAT.max())
+        
+    # ---- build lat/lon selection from the flight track ----
+    # Aircraft → 0..360 to match ERA5
+    lon0 = ((df.GGLON.to_numpy(dtype=float) % 360.0) + 360.0) % 360.0
+    lat0 = df.GGLAT.to_numpy(dtype=float)
+    
+    # Robust bounds (with a small pad for ERA5 0.25° grid)
+    pad = 0.5
+    lon_min = float(np.floor(np.nanmin(lon0) - pad))
+    lon_max = float(np.ceil (np.nanmax(lon0) + pad))
+    # keep inside ERA5 domain
+    lon_min = max(0.0, lon_min)
+    lon_max = min(359.999, lon_max)
+    
+    lat_min = float(np.floor(np.nanmin(lat0) - pad))
+    lat_max = float(np.ceil (np.nanmax(lat0) + pad))
+    
+    # ERA5 latitude is usually descending (90 → -90): use slice(max, min)
+    lat_slice = slice(lat_max, lat_min)
+    
+    # ERA5 longitudes are ascending (0 → 360): use slice(min, max)
+    lon_slice = slice(lon_min, lon_max)
+    
+    print("Selecting ERA5 box:",
+      f"lon {lon_min}→{lon_max} (0–360), lat {lat_max}→{lat_min} (descending)")
+
+    # Make the yearmonth string for file selection
+    dir_date = f"{year}{month:02d}"
     
     # Flight start and end times
     start_dt = datetime.datetime(year, month, day_start, start_hour) 
     end_dt = datetime.datetime(year, month, day_end, end_hour)+datetime.timedelta(hours=1)
+
+    # ---- apply the SAME slices to every dataset you open ----
+    ds_sp  = xr.open_mfdataset(get_matching_files(f"{filepath_sfc}{dir_date}/*_sp.*.nc", start_dt, end_dt),
+                                combine='by_coords').sel(latitude=lat_slice, longitude=lon_slice, time=slice(start_dt,end_dt))
+    ds_sst  = xr.open_mfdataset(get_matching_files(f"{filepath_sfc}{dir_date}/*_sstk.*.nc", start_dt, end_dt),
+                                combine='by_coords').sel(latitude=lat_slice, longitude=lon_slice, time=slice(start_dt,end_dt))
+    ds_t2m  = xr.open_mfdataset(get_matching_files(f"{filepath_sfc}{dir_date}/*_2t.*.nc", start_dt, end_dt),
+                                combine='by_coords').sel(latitude=lat_slice, longitude=lon_slice, time=slice(start_dt,end_dt))
+    ds_u10  = xr.open_mfdataset(get_matching_files(f"{filepath_sfc}{dir_date}/*_10u.*.nc", start_dt, end_dt),
+                                combine='by_coords')[['VAR_10U']].sel(latitude=lat_slice, 
+                                                                      longitude=lon_slice,time=slice(start_dt,end_dt))
+    ds_v10  = xr.open_mfdataset(get_matching_files(f"{filepath_sfc}{dir_date}/*_10v.*.nc", start_dt, end_dt),
+                                combine='by_coords')[['VAR_10V']].sel(latitude=lat_slice, longitude=lon_slice, 
+                                                                      time=slice(start_dt,end_dt))
     
-    # Make the yearmonth string for file selection
-    dir_date = f"{year}{month:02d}"
+    ds_w    = xr.open_mfdataset(get_matching_files(f"{filepath_pl}{dir_date}/*_w.*.nc",  start_dt, end_dt),
+                                combine='nested', concat_dim='time')
+    w_700   = ds_w['W'].sel(level=700).sortby('time').sel(latitude=lat_slice, longitude=lon_slice, time=slice(start_dt,end_dt))
     
-    # Load SST data
-    filepath="/glade/campaign/collections/rda/data/ds633.0/e5.oper.an.sfc/"
-    # # Construct the search pattern (SST)
-    ds_sst = xr.open_mfdataset(get_matching_files(f"{filepath_sfc}{dir_date}/*_sstk.*.nc", start_dt, end_dt), combine='by_coords')
-    ds_sst = ds_sst.sel(
-    latitude=slice(lat_min, lat_max),  # Select latitudes within range
-    longitude=slice(lon_min, lon_max),  # Select longitudes within range
-    time=slice(start_dt, end_dt),
-    )
+    # ds_rh700 = xr.open_mfdataset(get_matching_files(f"{filepath_pl}{dir_date}/*_r.*.nc", start_dt, end_dt),
+    #                              combine='nested', concat_dim='time')[['R']].sel(level=700).drop_vars('level', errors='ignore')
+    # rh      = ds_rh700['R'].rename('RH').sortby('time').sel(latitude=lat_slice, longitude=lon_slice, 
+    # time=slice(start_dt,end_dt))
+    ds_q700  = xr.open_mfdataset(get_matching_files(f"{filepath_pl}{dir_date}/*_q.*.nc", start_dt, end_dt),
+                                 combine='nested', concat_dim='time')[['Q']].sel(level=700).drop_vars('level', errors='ignore')
+    q       = ds_q700['Q'].rename('Q').sortby('time').sel(latitude=lat_slice, longitude=lon_slice, time=slice(start_dt,end_dt))
+    ds_u700 = xr.open_mfdataset(get_matching_files(f"{filepath_pl}{dir_date}/*_u.*.nc", start_dt, end_dt),
+                                 combine='nested', concat_dim='time')[['U']].sel(level=700).drop_vars('level', errors='ignore')
+    ds_u700 = ds_u700.sortby('time').sel(latitude=lat_slice, longitude=lon_slice, time=slice(start_dt,end_dt))
+    ds_v700 = xr.open_mfdataset(get_matching_files(f"{filepath_pl}{dir_date}/*_v.*.nc", start_dt, end_dt),
+                                 combine='nested', concat_dim='time')[['V']].sel(level=700).drop_vars('level', errors='ignore')
+    ds_v700 = ds_v700.sortby('time').sel(latitude=lat_slice, longitude=lon_slice, time=slice(start_dt,end_dt))
     
-    # Load 2m tempeature
-    ds_t2m = xr.open_mfdataset(get_matching_files(f"{filepath_sfc}{dir_date}/*_2t.*.nc", start_dt, end_dt), combine='by_coords')
-    ds_t2m = ds_t2m.sel(
-    latitude=slice(lat_min, lat_max),  # Select latitudes within range
-    longitude=slice(lon_min, lon_max),  # Select longitudes within range
-    time=slice(start_dt, end_dt),
-    )
-    
-    # Load 10m wind speed (u and v components)
-    ds_u10 = xr.open_mfdataset(get_matching_files(f"{filepath_sfc}{dir_date}/*_10u.*.nc", start_dt, end_dt), combine='by_coords')[['VAR_10U']]
-    ds_u10 = ds_u10.sel(
-    latitude=slice(lat_min, lat_max),  # Select latitudes within range
-    longitude=slice(lon_min, lon_max),  # Select longitudes within range
-    time=slice(start_dt, end_dt),
-    )
-    ds_v10 = xr.open_mfdataset(get_matching_files(f"{filepath_sfc}{dir_date}/*_10v.*.nc", start_dt, end_dt), combine='by_coords')[['VAR_10V']]
-    ds_v10 = ds_v10.sel(
-    latitude=slice(lat_min, lat_max),  # Select latitudes within range
-    longitude=slice(lon_min, lon_max),  # Select longitudes within range
-    time=slice(start_dt, end_dt),
-    )
-    
+    ds_t    = xr.open_mfdataset(get_matching_files(f"{filepath_pl}{dir_date}/*_t.*.nc", start_dt, end_dt),
+                                 combine='nested', concat_dim='time')[['T']].sel(level=800).drop_vars('level', errors='ignore')
+    ds_t    = ds_t.sortby('time').sel(latitude=lat_slice, longitude=lon_slice, time=slice(start_dt,end_dt))
+    ds_t700 = xr.open_mfdataset(get_matching_files(f"{filepath_pl}{dir_date}/*_t.*.nc", start_dt, end_dt),
+                                 combine='nested', concat_dim='time')[['T']].sel(level=700).drop_vars('level', errors='ignore')
+    ds_t700 = ds_t700.sortby('time').sel(latitude=lat_slice, longitude=lon_slice, time=slice(start_dt,end_dt))
+    ds_t850 = xr.open_mfdataset(get_matching_files(f"{filepath_pl}{dir_date}/*_t.*.nc", start_dt, end_dt),
+                                 combine='nested', concat_dim='time')[['T']].sel(level=850).drop_vars('level', errors='ignore')
+    ds_t850 = ds_t700.sortby('time').sel(latitude=lat_slice, longitude=lon_slice, time=slice(start_dt,end_dt))
+
     ws = np.sqrt(ds_u10.VAR_10U**2 + ds_v10.VAR_10V**2)
     wind_dir = (270 - np.degrees(np.arctan2(ds_v10.VAR_10V, ds_u10.VAR_10U))) % 360
     
-    # Load w data for all pressure levels
-    # # Construct the search pattern (SST)
-    ds_w = xr.open_mfdataset(get_matching_files(f"{filepath_pl}{dir_date}/*_w.*.nc", start_dt, end_dt), combine='nested', concat_dim='time')
-    w_700 = ds_w['W'].sel(level=700).squeeze()
+    # Calculate RH from specfic humidity
+    # Murphy & Koop (2005) saturation vapor pressure (Pa)
+    def es_MK_water(T):
+        # ln(esw [Pa]) valid ~123–332 K
+        return xr.ufuncs.exp(54.842763 - 6763.22/T - 4.210*np.log(T) + 0.000367*T
+                             + xr.ufuncs.tanh(0.0415*(T-218.8)) * (53.878 - 1331.22/T - 9.44523*np.log(T) + 0.014025*T))
     
-    # Select w at 500 hPa
-    w_700 = w_700.sortby('time').sel(
-        latitude=slice(lat_min, lat_max),
-        longitude=slice(lon_min, lon_max),
-        time=slice(start_dt, end_dt)
-    )
+    def es_MK_ice(T):
+        # ln(esi [Pa]) valid ~110–273 K
+        return xr.ufuncs.exp(9.550426 - 5723.265/T + 3.53068*np.log(T) - 0.00728332*T)
     
-    ds_rh700 = xr.open_mfdataset(get_matching_files(f"{filepath_pl}{dir_date}/*_r.*.nc", start_dt, end_dt), combine='nested', concat_dim='time')[['R']].sel(level=700).drop_vars('level', errors='ignore')
-    rh = ds_rh700['R'].rename("RH") if 'R' in ds_rh700 else None
-    rh = rh.sortby('time').sel(
-        latitude=slice(lat_min, lat_max),
-        longitude=slice(lon_min, lon_max),
-        time=slice(start_dt, end_dt)
-    )
+    esw = es_MK_water(ds_t700.T)
+    esi = es_MK_ice(ds_t700.T)
+    # Choose water above freezing, ice at/below (adjust threshold if you prefer 273.16)
+    es = xr.where(ds_t700.T > 273.15, esw, esi)
     
-    # Load pressure level wind speed (u and v components)
-    ds_u700 = xr.open_mfdataset(get_matching_files(f"{filepath_pl}{dir_date}/*_u.*.nc", start_dt, end_dt), combine='nested', concat_dim='time')[['U']].sel(level=700).drop_vars('level', errors='ignore')
-    ds_u700 = ds_u700.sortby('time').sel(
-    latitude=slice(lat_min, lat_max),  # Select latitudes within range
-    longitude=slice(lon_min, lon_max),  # Select longitudes within range
-    time=slice(start_dt, end_dt)
-    )
-    ds_v700 = xr.open_mfdataset(get_matching_files(f"{filepath_pl}{dir_date}/*_v.*.nc", start_dt, end_dt), combine='nested', concat_dim='time')[['V']].sel(level=700).drop_vars('level', errors='ignore')
-    ds_v700 = ds_v700.sortby('time').sel(
-        latitude=slice(lat_min, lat_max),
-        longitude=slice(lon_min, lon_max),
-        time=slice(start_dt, end_dt)
-    )
+    # Saturation specific humidity and RH
+    eps = 0.622
+    qsat = (eps * es) / (70000 - (1.0 - eps) * es)
     
+    # Avoid division issues extremely near saturation/low p
+    qsat = qsat.clip(min=1e-12)
+    
+    RH = (q / qsat) * 100.0
+
     # Calcualte wind shear (SFC - 700mb)
-    ws700 = np.sqrt(ds_u700.U**2 + ds_v700.V**2)  
+    ws700 = np.sqrt(ds_u700.U**2 + ds_v700.V**2)
     wind_shear = ws700-ws
-    
-    # Load upper temperature data with select pressure levels
-    ds_t = xr.open_mfdataset(get_matching_files(f"{filepath_pl}{dir_date}/*_t.*.nc", start_dt, end_dt), combine='nested', concat_dim='time')[['T']].sel(level=800).drop_vars('level', errors='ignore')
-    ds_t = ds_t.sortby('time').sel(
-        latitude=slice(lat_min, lat_max),
-        longitude=slice(lon_min, lon_max),
-        time=slice(start_dt, end_dt)
-    )
-    # Load upper temperature data with select pressure levels
-    ds_t700 = xr.open_mfdataset(get_matching_files(f"{filepath_pl}{dir_date}/*_t.*.nc", start_dt, end_dt), combine='nested', concat_dim='time')[['T']].sel(level=700).drop_vars('level', errors='ignore')
-    ds_t700 = ds_t700.sortby('time').sel(
-        latitude=slice(lat_min, lat_max),
-        longitude=slice(lon_min, lon_max),
-        time=slice(start_dt, end_dt)
-    )
     
     # Calculate M-value
     Rd = 287
-    Cp = 1005     
-    theta_sfc = ds_sst.SSTK*(1)**(Rd/Cp)
+    Cp = 1005   
+    theta_sfc = ds_t2m.VAR_2T*(101325/ds_sp.SP)**(Rd/Cp)
     theta_800 = ds_t*(1013.25/800)**(Rd/Cp)
     
     M = theta_sfc.T - theta_800.T
     M = M.transpose("time", "latitude", "longitude")
     
     dt = ds_t2m.VAR_2T - ds_sst.SSTK
+    
     # Constants
     Re = 6.371e6  # Earth radius in meters
     deg2rad = np.pi / 180
@@ -655,16 +669,26 @@ def select_ERA5_4flight(df,campaign):
     # meters per 1° at this latitude
     m_per_deg_lon = Re * np.cos(phi) * deg2rad
     m_per_deg_lat = Re * deg2rad
-    # gradients in K/m  (NOTE the division by meters-per-degree)
-    dT_dx = ds_sst.SSTK.differentiate("longitude") / m_per_deg_lon   # K/m
-    dT_dy = ds_sst.SSTK.differentiate('latitude') / m_per_deg_lat   # K/m
+
+    if dat_type == "dropsonde": # Necessary to calculate delta x/y for dropsonde which only returns one column
+        # --- SST gradients & Tadv (K/day) ---
+        ds_sst2 = ds_sst.sortby(["latitude", "longitude"]).unify_chunks().chunk({"latitude": -1, "longitude": -1, "time": -1})
+
+        # gradients in K/m  (NOTE the division by meters-per-degree)
+        dT_dx = ds_sst2.SSTK.differentiate("longitude") / m_per_deg_lon   # K/m
+        dT_dy = ds_sst2.SSTK.differentiate('latitude') / m_per_deg_lat   # K/m
+
+    elif dat_type == "aircraft":
+        # gradients in K/m  (NOTE the division by meters-per-degree)
+        dT_dx = ds_sst.SSTK.differentiate("longitude") / m_per_deg_lon   # K/m
+        dT_dy = ds_sst.SSTK.differentiate('latitude') / m_per_deg_lat   # K/m
+ 
     # advection: K/s -> K/day
     Tadv = -(ds_u10['VAR_10U'] * dT_dx + ds_v10['VAR_10V'] * dT_dy) * 86400.0
     # Convert to K/day
     Tadv = Tadv.rename("Tadv")
 
     # Calculate EIS following Wood and Bretherton (2006, J. Climate)
-
     cp = 1004.     # specific heat at constant pressure for dry air (J / kg / K)
     Rd = 287.         # gas constant for dry air (J / kg / K)
     kappa = Rd / cp
@@ -685,7 +709,8 @@ def select_ERA5_4flight(df,campaign):
     theta_700 = ds_t700.T*(1013.25/700)**kappa
     LTS = theta_700 - theta_sfc
     
-    T850 = (ds_t2m.VAR_2T+ds_t700.T)/2
+    # T850 = (ds_t2m.VAR_2T+ds_t700.T)/2
+    T850 = ds_t850.T
     
     Gammam = (g/cp*(1.0 - (1.0 + Lhvap*get_qsat(T850,850) / Rd / T850) /
                  (1.0 + Lhvap**2 * get_qsat(T850,850)/ cp/Rv/T850**2)))
@@ -694,20 +719,22 @@ def select_ERA5_4flight(df,campaign):
     z700 = (Rd * ds_t2m.VAR_2T / g) * np.log(1000 / 700)
     # Assume 80% relative humidity to compute LCL, appropriate for marine boundary layer
     Tadj = Tadj = ds_t2m.VAR_2T-55.  # in Kelvin
-    LCL = cp/g*(Tadj - (1/Tadj - np.log(0.8)/2840.)**(-1))
-    
+    LCL = cp/g*(Tadj - (1/Tadj - np.log(0.8)/2840.)**(-1))    
     EIS = LTS - Gammam*(z700 - LCL)
+
+    # Convert w700 (m/s) to pa/s
+    omega700 = -(70000 / (Rd * ds_t700.T)) * g * w_700
     
     # Merge the dataset variables used later
     ds = {
     'deltaT': dt,
     'Tadv': Tadv,
     'M': M,
-    'w_700': w_700,
+    'omega700': omega700,
     'SST': ds_sst.SSTK,
     'WS': ws,
     'Wind_shear': wind_shear,
-    'RH700': rh,
+    'RH700': RH,
     'EIS': EIS
      }
 
@@ -723,80 +750,100 @@ def nearest_time_indices(era5_times_ns, flight_times_ns):
     idx_right = np.searchsorted(era5_times_ns, flight_times_ns, side="left")
     idx_left  = np.clip(idx_right - 1, 0, len(era5_times_ns) - 1)
     idx_right = np.clip(idx_right,       0, len(era5_times_ns) - 1)
-    # choose whichever neighbor is closer
     choose_right = np.abs(era5_times_ns[idx_right] - flight_times_ns) < np.abs(era5_times_ns[idx_left] - flight_times_ns)
     return np.where(choose_right, idx_right, idx_left)
 
+
 def collocate_ERA5_dat(ds, blocks):
     """
-    Vectorized collocation of ERA5 fields onto flight blocks.
-    Expects ds variables with dims ('time','latitude','longitude').
-    Returns updated `blocks` in-place with columns:
-    ERA5_SST, M, w700, deltaT, Wind_sp, Wind_shear, Tadv, RH700, EIS.
+    Collocate ERA5 fields onto flight blocks.
+    Assumes ds variables have dims ('time','latitude','longitude') and longitude is 0..360 ascending.
     """
-    # --- Pull coords as numpy (keep ordering exactly as in ds)
-    ds = xr.Dataset(ds)  # now ds has proper coords
+
+    # Ensure Dataset and time sorted
+    ds = xr.Dataset(ds).sortby('time')
+
+    # Coords (ERA5 already 0..360)
     lat_vals = ds['latitude'].values
-    lon_vals_ds = ds['longitude'].values
-    lon_vals_wrapped = wrap180(lon_vals_ds)  # build KDTree in [-180,180)
+    lon_vals = ds['longitude'].values
+    ny, nx   = lat_vals.size, lon_vals.size
 
-    # --- KDTree on (lat, lon_wrapped)
-    lon_grid, lat_grid = np.meshgrid(lon_vals_wrapped, lat_vals)
-    tree = cKDTree(np.c_[lat_grid.ravel(), lon_grid.ravel()])
+    # KDTree over regular lat-lon grid (0..360 frame)
+    lon_grid, lat_grid = np.meshgrid(lon_vals, lat_vals)
+    tree = cKDTree(np.column_stack((lat_grid.ravel(), lon_grid.ravel())))
 
-    # --- Era5 time (sorted)
-    t_era = ds['time'].values.astype('datetime64[ns]')
-    t_era_ns = t_era.view('int64')
+    # ERA5 times (ns, sorted)
+    t_era_ns = ds['time'].values.astype('datetime64[ns]').view('int64')
 
-    # --- Preload arrays once (-> NumPy) for super-fast indexing
+    # Pull arrays once (T,Y,X) as NumPy
     def arr3(name):
-        return ds[name].transpose('time','latitude','longitude').compute().values  # (T,Y,X) numpy
+        return ds[name].transpose('time','latitude','longitude').compute().values
+
     arr = {
-        'ERA5_SST': arr3('SST'),
-        'M':        arr3('M'),
-        'w700':     arr3('w_700'),
-        'deltaT':   arr3('deltaT'),
-        'Wind_sp':  arr3('WS'),
+        'ERA5_SST':   arr3('SST'),
+        'M':          arr3('M'),
+        'omega700':       arr3('omega700'),
+        'deltaT':     arr3('deltaT'),
+        'Wind_sp':    arr3('WS'),
         'Wind_shear': arr3('Wind_shear'),
-        'Tadv':     arr3('Tadv'),
-        'RH700':    arr3('RH700'),
-        'EIS':      arr3('EIS'),
+        'Tadv':       arr3('Tadv'),
+        'RH700':      arr3('RH700'),
+        'EIS':        arr3('EIS'),
     }
 
-    ny, nx = len(lat_vals), len(lon_vals_ds)
-
-    # --- Iterate blocks, but do all lookups in one vectorized shot per block
-    for val in blocks:
-        block_list = blocks[val]
-        for i, block in enumerate(block_list):
-            block = block.copy()
-            block = block.dropna(subset=['GGLAT','GGLON'])
-            if len(block) == 0:
-                block_list[i] = block
+    # Loop blocks
+    for key, blist in blocks.items():
+        for i, block in enumerate(blist):
+            b = block.copy().dropna(subset=['GGLAT','GGLON'])
+            if len(b) == 0:
+                blist[i] = b
                 continue
 
-            # Flight coords/time
-            flt_lat = block['GGLAT'].values.astype(float)
-            flt_lon = wrap180(block['GGLON'].values.astype(float))  # match KDTree frame
-            flt_t   = block['Time'].astype('datetime64[ns]').values
-            flt_t_ns = flt_t.view('int64')
+            # Flight coords/time (convert lon to 0..360)
+            flt_lat  = b['GGLAT'].to_numpy(dtype=float)
+            flt_lon  = ((b['GGLON'].to_numpy(dtype=float) % 360.0) + 360.0) % 360.0
+            flt_t_ns = b['Time'].to_numpy('datetime64[ns]').view('int64')
 
-            # Nearest time indices (vectorized, no giant argmin)
+            # Nearest time index per sample
             ti = nearest_time_indices(t_era_ns, flt_t_ns)  # (N,)
 
-            # Nearest gridpoint via KDTree (vectorized)
-            _, flat_idx = tree.query(np.c_[flt_lat, flt_lon])     # (N,)
-            yi, xi = np.unravel_index(flat_idx, (ny, nx))         # (N,), (N,)
+            # Nearest gridpoint (lat, lon) in 0..360 frame
+            _, flat_idx = tree.query(np.column_stack((flt_lat, flt_lon)))  # (N,)
+            yi, xi = np.unravel_index(flat_idx, (ny, nx))                  # (N,), (N,)
 
-            # Gather all variables in one pass
+            # Gather all variables
             for out_name, A in arr.items():
-                block[out_name] = A[ti, yi, xi]
+                b[out_name] = A[ti, yi, xi]
 
-            # Put back
-            block_list[i] = block
-        blocks[val] = block_list
+            blist[i] = b
+        blocks[key] = blist
 
     return blocks
+
+# Function that writes each dictionary "Flight Blocks" as a netCDF
+def write_RF_nc(fblks_cr, rf, campaign):
+    combined = []
+    if isinstance(fblks_cr, dict):
+        for label, df_list in fblks_cr.items():
+            for i, df in enumerate(df_list):
+                df = df.copy()
+                df["flight"] = rf
+                df["block_label"] = label
+                df["block_index"] = i
+                combined.append(df)
+
+        df_all = pd.concat(combined, ignore_index=True)
+        df_all = df_all.set_index(["block_label", "block_index", "Time"])
+        ds = df_all.reset_index().to_xarray()
+        today = datetime.date.today().strftime("%Y%m%d")        
+        # campaign prefix, no spaces, underscore separator
+        campaign_str = str(campaign).upper().replace(" ", "")
+        rf_str = str(rf).replace(" ", "_")
+        name = f"{campaign_str}_{rf_str}_{today}.nc"
+
+        ds.to_netcdf(name)
+        print(f"Wrote {name}")
+
 
 def cloud_regime_old(fblks):
     # Iterate through blocks
@@ -819,95 +866,118 @@ def cloud_regime_old(fblks):
 
 def cloud_regime(fblks, campaign):
     """
-    Assign cloud_regime per block:
-      - For CSET:
-          Stratocumulus if any of:
-              1) M < -10 & RH700 > 30
-              2) M < -10 & ERA5_SST < 295
-              3) M < -11 & Tadv < 0
-          Open-cell Cumulus if any of:
-              1) M >= -10 & RH700 <= 30
-              2) M >= -10 & ERA5_SST >= 296
-              3) M >= -10 & Tadv >= 0.0005   # assume same units as your Tadv column (ideally K/day)
-        - For SOCRATES: (keeps your existing rules)
+    Assign cloud_regime per block.
+
+    - SOCRATES:
+        Stratocumulus (cond_strat) if ANY of:
+            1) M < -9  and Wind_sp < 9
+            2) M < -10 and EIS > 7
+            3) M < -10 and Wind_shear < 9
+
+        Open-Cell (cond_open) if ANY of:
+            1) M >= -7 and Wind_sp >= 9
+            2) M >= -8 and EIS < 9
+            3) M >= -8 and Wind_shear > 6
+
+    - CSET:
+        Stratocumulus (cond_strat) if ANY of:
+            1) M < -10 and SST < 295
+            2) M < -11 and Tadv < 0
+
+        Open-Cell (cond_open) if ANY of:
+            1) M >= -10 and SST >= 296
+            2) M >= -10 and Tadv >= -4
+
+    Tie policy:
+        - Start everything as 'Undetermined'
+        - Assign 'Stratocumulus' only where cond_strat is True
+          AND cond_open is False
+        - Assign 'Open-Cell' only where cond_open is True
+          AND cond_strat is False
+        → Points that satisfy both or neither stay 'Undetermined'.
     """
-    import numpy as np
-    import pandas as pd
+
+    # Normalize campaign string a bit for safety
+    campaign = str(campaign).upper()
 
     for val in fblks:
-        block_type = fblks[val]
-        for i in range(len(block_type)):
-            block = block_type[i].copy()
+        block_list = fblks[val]
 
-            # default class
-            block['cloud_regime'] = pd.Series('Unknown', index=block.index, dtype='object')
+        for i in range(len(block_list)):
+            block = block_list[i].copy()
 
+            # Default: unknown / in-between regime
+            block['cloud_regime'] = pd.Series('Undetermined',
+                                              index=block.index,
+                                              dtype='object')
+
+            # =====================================================
+            # SOCRATES rules
+            # =====================================================
             if campaign == 'SOCRATES':
-                condition_cum = ((block['M'] > -7) & (block['Wind_shear'] < 6)) | \
-                                ((block['M'] > -7) & (block['Wind_sp'] > 10))
-                condition_strcu = ((block['M'] <= -10) & (block['Wind_sp'] < 10)) | \
-                                  ((block['M'] <= -10) | (block['Wind_shear'] > 6))
+                # Required / optional fields
+                M   = block['M']
+                WS  = block.get('Wind_sp',
+                                pd.Series(np.nan, index=block.index))
+                EIS = block.get('EIS',
+                                pd.Series(np.nan, index=block.index))
+                WSH = block.get('Wind_shear',
+                                pd.Series(np.nan, index=block.index))
 
-                block.loc[condition_cum,  'cloud_regime'] = 'Open-Cell'
-                block.loc[condition_strcu,'cloud_regime'] = 'Stratocumulus'  # or 'Closed-Cell' if you prefer
-
-            elif campaign == 'CSET':
-                # Safely get needed variables (treat missing as NaN so conditions become False)
-                M    = block['M']
-                RH   = block.get('RH700',     pd.Series(np.nan, index=block.index))
-                SST  = block.get('ERA5_SST',  block.get('sst', pd.Series(np.nan, index=block.index)))
-                Tadv = block.get('Tadv',      pd.Series(np.nan, index=block.index))
-
-                # --- Stratocumulus (any of the three) ---
+                # Stratocumulus-favoring conditions
                 cond_strat = (
-                    ((M < -10) & (RH > 30)) |
-                    ((M < -10) & (SST < 295)) |
-                    ((M < -10) & (Tadv < 0))
+                    ((M < -9)  & (WS  < 9)) |
+                    ((M < -10) & (EIS > 7)) |
+                    ((M < -10) & (WSH < 9))
                 )
 
-                # --- Open-cell Cumulus (any of the three) ---
-                cond_opencu = (
-                    ((M >= -10) & (RH <= 30)) |
+                # Open-cell-favoring conditions
+                cond_open = (
+                    ((M >= -7) & (WS  >= 9)) |
+                    ((M >= -8) & (EIS < 9))  |
+                    ((M >= -8) & (WSH > 6))
+                )
+
+                # Apply labels, with "Undetermined" winning ties
+                block.loc[cond_strat & ~cond_open, 'cloud_regime'] = 'Stratocumulus'
+                block.loc[cond_open  & ~cond_strat, 'cloud_regime'] = 'Open-Cell'
+
+            # =====================================================
+            # CSET rules
+            # =====================================================
+            elif campaign == 'CSET':
+                M    = block['M']
+                SST  = block.get('ERA5_SST',
+                                 block.get('sst',
+                                           pd.Series(np.nan, index=block.index)))
+                Tadv = block.get('Tadv',
+                                 pd.Series(np.nan, index=block.index))
+
+                # Stratocumulus-favoring conditions
+                cond_strat = (
+                    ((M < -10) & (SST < 296)) |
+                    ((M < -11) & (Tadv < 0))
+                )
+
+                # Open-cell-favoring conditions
+                cond_open = (
                     ((M >= -10) & (SST >= 296)) |
-                    ((M >= -10) & (Tadv >= 0.0005))  # assumes Tadv units match your data (recommended: K/day)
+                    ((M >= -10) & (Tadv >= -3))
                 )
 
-                # Apply labels
-                block.loc[cond_strat,  'cloud_regime'] = 'Stratocumulus'
-                block.loc[cond_opencu, 'cloud_regime'] = 'Open-Cell'
+                # Apply labels, with "Undetermined" winning ties
+                block.loc[cond_strat & ~cond_open, 'cloud_regime'] = 'Stratocumulus'
+                block.loc[cond_open  & ~cond_strat, 'cloud_regime'] = 'Open-Cell'
 
-            # write back
-            block_type[i] = block
-        fblks[val] = block_type
+            # Write back modified block
+            block_list[i] = block
+
+        # Update this entry in fblks
+        fblks[val] = block_list
 
     return fblks
-       
-def write_RF_nc(fblks_cr, rf, campaign='CSET'):
-    combined = []
-    if isinstance(fblks_cr, dict):
-        for label, df_list in fblks_cr.items():
-            for i, df in enumerate(df_list):
-                df = df.copy()
-                df["flight"] = rf
-                df["block_label"] = label
-                df["block_index"] = i
-                combined.append(df)
-
-        df_all = pd.concat(combined, ignore_index=True)
-        df_all = df_all.set_index(["block_label", "block_index", "Time"])
-        ds = df_all.reset_index().to_xarray()
-
-        name = f"{campaign}_{rf}.nc"
-        ds.to_netcdf(name)
-        print(f"Wrote {name}")
 
 def plot_block_ts(dict,idx):
-
-    import matplotlib.pyplot as plt
-    import matplotlib.gridspec as gridspec
-    import matplotlib.dates as mdates
-    import numpy as np
-    import pandas as pd
 
     # Assuming the four DataFrames are already created
     # profile_in_cloud, level_in_cloud, level_out_cloud_bl, level_out_cloud_fr
@@ -1025,11 +1095,6 @@ def plot_block_ts(dict,idx):
    
 def plot_hcr_cloud_type(df,Flight_blocks,idx):
     
-    import matplotlib.pyplot as plt
-    import matplotlib.cm as cm
-    from matplotlib.colors import ListedColormap, BoundaryNorm
-    import matplotlib.dates as mdates
-    
     # Initialize figure and gridspec for plotting
     fig = plt.figure(figsize=(14, 6))
     gs = fig.add_gridspec(2, 1, height_ratios=[10, 1])
@@ -1133,11 +1198,249 @@ def plot_hcr_cloud_type(df,Flight_blocks,idx):
 
     # Save the figure
     rf_id = f"RF_{idx+1:02d}"
-    filename = f"SOCRATES_Altitude_Flight_HCR_Cloud_Echo_{rf_id}.png"
+    # filename = f"SOCRATES_Altitude_Flight_HCR_Cloud_Echo_{rf_id}.png"
     plt.savefig(filename, dpi=300, bbox_inches='tight')  # Save as PNG with high resolution
 
+#==========================================================
+# Functions for compositing dropsondes
+#==========================================================
 
+def collocate_ERA5_sonde(ds, df):
+    """
+    Collocate ERA5 gridded fields with dropsonde observations using
+    nearest-neighbor matching in space and time.
 
+    For each dropsonde observation, the function:
+        1. Finds the nearest ERA5 grid point using a KDTree built from
+           the ERA5 latitude/longitude grid.
+        2. Finds the nearest ERA5 time step to the sonde observation time.
+        3. Extracts ERA5 variables at that grid point and time.
+        4. Appends those values as new columns to the dropsonde dataframe.
 
+    Longitude matching is performed in a [-180°, 180°) coordinate system
+    to avoid issues near the dateline.
 
+    Parameters
+    ----------
+    ds : xarray.Dataset or dict-like
+        ERA5 dataset containing the variables to collocate. Expected
+        dimensions are ('time', 'latitude', 'longitude').
+
+        Required variables:
+            SST
+            M
+            omega700
+            deltaT
+            WS
+            Wind_shear
+            Tadv
+            RH700
+            EIS
+
+    df : pandas.DataFrame
+        Dropsonde dataframe containing observation coordinates and time.
+
+        Required columns:
+            GGLAT   : latitude (degrees)
+            GGLON   : longitude (degrees)
+            Time    : observation time (datetime-like)
+
+    Returns
+    -------
+    df : pandas.DataFrame
+        Same dataframe with additional columns containing collocated ERA5
+        values at the nearest grid point and time:
+
+            ERA5_SST
+            M
+            Omega700
+            deltaT
+            Wind_sp
+            Wind_shear
+            Tadv
+            RH700
+            EIS
+    Notes
+    -----
+    - Spatial matching uses Euclidean distance in lat/lon space via
+      scipy.spatial.cKDTree.
+    - Temporal matching uses nearest neighbor in ERA5 time.
+    - Rows with missing latitude, longitude, or time receive NaN values
+      for all collocated variables.
+    - ERA5 variables are loaded into memory as NumPy arrays for fast
+      indexing.
+    """
+    
+    # ---------------- core collocation block ----------------
+    ds = xr.Dataset(ds)
+    
+    # ERA5 coords
+    lat_vals = ds['latitude'].values.astype(float)
+    lon_vals_ds = ds['longitude'].values.astype(float)
+    
+    # Build KDTree in [-180,180) to avoid wrap issues
+    lon_vals_wrapped = wrap180(lon_vals_ds)
+    lon_grid, lat_grid = np.meshgrid(lon_vals_wrapped, lat_vals, indexing="xy")  # (nx,ny) if xy; use ij below
+    # use ij orientation for unravel consistency:
+    YY, XX = np.meshgrid(lat_vals, lon_vals_wrapped, indexing="ij")  # (ny,nx)
+    tree = cKDTree(np.c_[YY.ravel(), XX.ravel()])
+    ny, nx = YY.shape  # (lat, lon)
+    
+    # ERA5 time (sorted)
+    t_era = ds['time'].values.astype('datetime64[ns]')
+    t_era_ns = t_era.view('int64')
+    
+    # Preload arrays into NumPy (T,Y,X) for fast indexing
+    def arr3(name):
+        return ds[name].transpose('time', 'latitude', 'longitude').compute().values
+    
+    arr = {
+        'ERA5_SST':     arr3('SST'),
+        'M':            arr3('M'),
+        'Omega700':     arr3('omega700'),
+        'deltaT':       arr3('deltaT'),
+        'Wind_sp':      arr3('WS'),
+        'Wind_shear':   arr3('Wind_shear'),
+        'Tadv':         arr3('Tadv'),
+        'RH700':        arr3('RH700'),
+        'EIS':          arr3('EIS'),
+    }
+    
+    # Flight coords/time
+    flt_lat = df['GGLAT'].to_numpy(float)
+    flt_lon = wrap180(df['GGLON'].to_numpy(float))  # match KDTree frame
+    flt_t   = pd.to_datetime(df['Time'].values).to_numpy('datetime64[ns]')
+    flt_t_ns = flt_t.view('int64')
+    
+    N = len(df)
+    
+    # Mask rows we can sample (ignore NaNs)
+    valid = np.isfinite(flt_lat) & np.isfinite(flt_lon) & np.isfinite(flt_t_ns)
+    
+    # If nothing valid, just make the output columns full NaN and return df as-is
+    if not np.any(valid):
+        for out_name in arr.keys():
+            df[out_name] = np.nan
+    else:
+        # Nearest time indices for valid rows only
+        ti_valid = nearest_time_indices(t_era_ns, flt_t_ns[valid])  # (M,)
+    
+        # Nearest gridpoint for valid rows
+        _, flat_idx = tree.query(np.c_[flt_lat[valid], flt_lon[valid]])  # (M,)
+        yi, xi = np.unravel_index(flat_idx, (ny, nx))                    # (M,), (M,)
+    
+        # Gather each variable and scatter back into full-length columns (NaN elsewhere)
+        for out_name, A in arr.items():   # A: (T,ny,nx)
+            vals_valid = A[ti_valid, yi, xi]              # (M,)
+            out_full = np.full(N, np.nan, dtype=float)    # default NaN
+            out_full[valid] = vals_valid
+            df[out_name] = out_full
+
+    return df
+
+def cloud_regime_sonde(df, campaign, min_valid=5):
+    """
+    Assign a single cloud_regime label to an entire dropsonde dataframe
+    based on block-mean (NaN-excluded) cloud controlling factors.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Dropsonde dataframe containing ERA5_SST, M, RH700, Tadv, Wind_sp,
+        Wind_shear, EIS, etc.
+    campaign : str
+        'SOCRATES' or 'CSET'
+    min_valid : int
+        Minimum required valid samples when computing mean()
+
+    Returns
+    -------
+    df : pandas.DataFrame
+        Same dataframe with new column 'cloud_regime' filled with a single label
+    """
+
+    def mean_if_enough(x, nmin=min_valid):
+        """Return mean(x) if enough valid samples exist, else NaN."""
+        vals = x.to_numpy(dtype=float)
+        return float(np.nanmean(vals)) if np.isfinite(vals).sum() >= nmin else np.nan
+
+    # --- compute block means ---
+    M_mean          = mean_if_enough(df.get("M"))
+    RH700_mean      = mean_if_enough(df.get("RH700"))
+    SST_mean        = mean_if_enough(df.get("ERA5_SST"))
+    Tadv_mean       = mean_if_enough(df.get("Tadv"))
+    Wind_sp_mean    = mean_if_enough(df.get("Wind_sp"))
+    Wind_shear_mean = mean_if_enough(df.get("Wind_shear"))
+    EIS_mean        = mean_if_enough(df.get("EIS"))
+
+    # default label
+    label = "Unknown"
+
+    # ===========================
+    #     SOCRATES RULE SET
+    # ===========================
+    if campaign.upper() == "SOCRATES":
+
+        # --- Open-cell cumulus ---
+        cond_open = (
+            # 1) M >= -7 & WS >= 9
+            (np.isfinite(M_mean) and np.isfinite(Wind_sp_mean) and
+             M_mean >= -7 and Wind_sp_mean >= 9)
+            or
+            # 2) M >= -8 & EIS < 9
+            (np.isfinite(M_mean) and np.isfinite(EIS_mean) and
+             M_mean >= -8 and EIS_mean < 9)
+            or
+            # 3) M >= -8 & wshear > 6
+            (np.isfinite(M_mean) and np.isfinite(Wind_shear_mean) and
+             M_mean >= -8 and Wind_shear_mean > 6)
+        )
+
+        # --- Stratocumulus ---
+        cond_strat = (
+            # 1) M < -9 & WS < 9
+            (np.isfinite(M_mean) and np.isfinite(Wind_sp_mean) and
+             M_mean < -9 and Wind_sp_mean < 9)
+            or
+            # 2) M < -10 & EIS > 7
+            (np.isfinite(M_mean) and np.isfinite(EIS_mean) and
+             M_mean < -10 and EIS_mean > 7)
+            or
+            # 3) M < -10 & wshear < 9
+            (np.isfinite(M_mean) and np.isfinite(Wind_shear_mean) and
+             M_mean < -10 and Wind_shear_mean < 9)
+        )
+
+        if cond_open:
+            label = "Open-Cell"
+        if cond_strat:
+            # Stratocumulus overrides if both are true
+            label = "Stratocumulus"
+
+    # ===========================
+    #        CSET RULE SET
+    # ===========================
+    elif campaign.upper() == "CSET":
+
+        cond_strat = (
+            (np.isfinite(M_mean) and np.isfinite(SST_mean)  and M_mean < -10 and SST_mean < 295)
+            or
+            (np.isfinite(M_mean) and np.isfinite(Tadv_mean) and M_mean < -10 and Tadv_mean < 0)
+        )
+
+        cond_opencu = (
+            (np.isfinite(M_mean) and np.isfinite(SST_mean)  and M_mean >= -10 and SST_mean >= 296)
+            or
+            (np.isfinite(M_mean) and np.isfinite(Tadv_mean) and M_mean >= -4)
+        )
+
+        if cond_strat:
+            label = "Stratocumulus"
+        if cond_opencu:
+            label = "Open-Cell"
+
+    # add a single label to the entire df
+    df = df.copy()
+    df["cloud_regime"] = label
+    return df
 
