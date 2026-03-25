@@ -21,7 +21,7 @@ SCAM_scripts/create_CAM6_ne30_Global_Nudged_SOCRATES_Jan-Feb_2018
 ```
 * Second: CAM6 run(s) to generate CAM IOP data. CAM will nudge to ERA5 reanalysis outside the SOCRATES area
 ```tcsh
-SCAM_scripts/create_CAM6_ne30_Window_Nudged_SOCRATES_CAMIOP_Jan-18-19_RF01
+SCAM_scripts/create_CAM6_ne30_Window_Nudged_SOCRATES_CAMIOP_Jan-15-16_RF01
 ```
 * Third: single column atmosphere (SCAM) run(s) using the generated CAM IOP data.
 ```tcsh
@@ -54,7 +54,7 @@ Before you begin, you may find it useful to review the [SCAM Tips]({{ site.baseu
 1. If you changed the location of the code or case directories, edit the CESMDIR and CASEDIR variables in the following script to point to your new locations.
 ```tcsh
 > vi create_CAM6_ne30_Global_Nudged_SOCRATES_Jan-Feb_2018
-> vi create_CAM6_ne30_Window_Nudged_SOCRATES_CAMIOP_Jan-18-19_RF01
+> vi create_CAM6_ne30_Window_Nudged_SOCRATES_CAMIOP_Jan-15-16_RF01
 > vi create_CAM6_ne30_SCAM_RUN
 ```
 
@@ -103,7 +103,7 @@ set GET_REFCASE=TRUE
 1. Run the second experiment to generate IOP data for SCAM.
 ```tcsh
 > cd $HOME/collections/INFORM-COMPASS-cookbook/SCAM_scripts
-> qcmd -- ./create_CAM6_ne30_Window_Nudged_SOCRATES_CAMIOP_Jan-18-19_RF01
+> qcmd -- ./create_CAM6_ne30_Window_Nudged_SOCRATES_CAMIOP_Jan-15-16_RF01
 ```
 
 1. See what the second experiment generated
