@@ -29,6 +29,7 @@ set EXP=rf01.cosp
 
 set RUN_TYPE=hybrid
 set RUN_STARTDATE=2018-01-15
+set START_TOD=82200
 set STOP_OPTION=ndays
 set STOP_N=3
 set REST_OPTION=${STOP_OPTION}
@@ -100,6 +101,7 @@ set RUNDIR=${CASEDIR}/${CASENAME}/run
 #------------------
 ./xmlchange RUN_TYPE=${RUN_TYPE}
 ./xmlchange RUN_STARTDATE=${RUN_STARTDATE}
+./xmlchange START_TOD=${START_TOD}
 ./xmlchange STOP_N=${STOP_N}
 ./xmlchange STOP_OPTION=${STOP_OPTION}
 ./xmlchange REST_OPTION=${REST_OPTION}
