@@ -7,7 +7,8 @@
 ### Full path of cesm source code and case (output) directories (see examples)
 
 set CESMDIR=${HOME}/collections/CAM_6_4_120_compass
-set CASEDIR=${SCRATCH}/cases
+set CASEDIR=${HOME}/collections/configuration
+set DATADIR=${SCRATCH}/cases
 
 ### Case Name
 
@@ -15,6 +16,7 @@ set CASETITLE=f.e30.cam6_4_120
 set CASEID=SOCRATES_3days_scam
 
 ### Standard Run Settings
+
 set WALLTIME=00:40:00
 set RES=ne30_ne30_mg17
 set COMPSET=HIST_CAM60%SCAM_CLM50%BGC-CROP_CICE%PRES_DOCN%DOM_SROF_SGLC_SWAV_SESP
@@ -26,6 +28,8 @@ set QUEUE=develop
 set PES='--pecount 1'
 #set PES=''
 set EXP=rf01.cosp
+
+### Run Configuration
 
 set RUN_TYPE=hybrid
 # Change this block to run a different flight

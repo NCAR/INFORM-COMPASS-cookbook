@@ -7,22 +7,15 @@
 ### Full path of cesm source code and case (output) directories (see examples)
 
 set CESMDIR=${HOME}/collections/CAM_6_4_120_compass
-set CASEDIR=${SCRATCH}/cases
+set CASEDIR=${HOME}/collections/configuration
+set DATADIR=${SCRATCH}/cases
 
 ### Case Name
 
 set CASETITLE=f.e30.cam6_4_120
 set CASEID=SOCRATES_nudgeUVTQwindow_withCOSP_tau6h_3days_camiop
 
-### Standard Run Settings
-set WALLTIME=00:40:00
-set RES=ne30_ne30_mg17
-set COMPSET=FHIST_BGC
-set COMPILER=intel
-set QUEUE=main
-#set PES='--pecount 32'
-set PES=''   # use default number of processors
-set EXP=rf01.cosp
+### Run Configuration
 
 set RUN_TYPE=hybrid
 set RUN_STARTDATE=2018-01-15
@@ -34,6 +27,17 @@ set RUN_REFCASE=f.e30.cam6_4_120.FHIST_BGC.ne30_ne30_mg17.SOCRATES_nudgeUVTQsoc_
 set RUN_REFDATE=2018-01-15
 set RUN_REFDIR=/glade/derecho/scratch/$USER/cases/${RUN_REFCASE}/run
 set GET_REFCASE=TRUE
+
+### Standard Run Settings
+
+set WALLTIME=00:40:00
+set RES=ne30_ne30_mg17
+set COMPSET=FHIST_BGC
+set COMPILER=intel
+set QUEUE=main
+#set PES='--pecount 32'
+set PES=''   # use default number of processors
+set EXP=rf01.cosp
 
 ### SOCRATES FLIGHT TIMES
 ### Taken from https://doi.org/10.5065/D6M32TM9
@@ -85,7 +89,7 @@ cd  $CASEDIR/$CASENAME
 
 ### Set build and run directories to be under case directory.
 
-set RUNDIR=${CASEDIR}/${CASENAME}/run
+set RUNDIR=${DATADIR}/${CASENAME}/run
 
 ./xmlchange RUNDIR=$RUNDIR
 ./xmlchange EXEROOT=${CASEDIR}/${CASENAME}/bld

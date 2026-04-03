@@ -7,14 +7,27 @@
 ### Full path of cesm source code and case (output) directories (see examples)
 
 set CESMDIR=${HOME}/collections/CAM_6_4_120_compass
-set CASEDIR=${SCRATCH}/cases
+set CASEDIR=${HOME}/collections/configuration
+set DATADIR=${SCRATCH}/cases
 
 ### Case Name
 
 set CASETITLE=f.e30.cam6_4_120
 set CASEID=SOCRATES_nudgeUVTQsoc_full_withCOSP_tau6h_2months_inithist
 
+### Run Configuration
+### Break up into 5 consecutive 10-day runs
+
+set RUN_TYPE=startup
+set STARTDATE=2018-01-01
+set STOP_OPTION=ndays
+set STOP_N=10
+set RESUBMIT=5
+set REST_OPTION=${STOP_OPTION}
+set REST_N=1
+
 ### Standard Run Settings
+
 set WALLTIME=04:00:00
 set RES=ne30_ne30_mg17
 set COMPSET=FHIST_BGC
@@ -75,20 +88,20 @@ cd  $CASEDIR/$CASENAME
 
 ### Set build and run directories to be under case directory.
 
-set RUNDIR=${CASEDIR}/${CASENAME}/run
+set RUNDIR=${DATADIR}/${CASENAME}/run
 ./xmlchange RUNDIR=$RUNDIR
 ./xmlchange EXEROOT=${CASEDIR}/${CASENAME}/bld
 
 #------------------
 # XMLCHANGE OPTIONS HERE
 #------------------
-./xmlchange RUN_TYPE=startup
-./xmlchange RUN_STARTDATE=2018-01-01
-./xmlchange STOP_OPTION=ndays
-./xmlchange STOP_N=10
-./xmlchange RESUBMIT=5
-./xmlchange REST_OPTION=ndays
-./xmlchange REST_N=1
+./xmlchange RUN_TYPE=${RUN_TYPE}
+./xmlchange RUN_STARTDATE=${STARTDATE}
+./xmlchange STOP_OPTION=${STOP_OPTION}
+./xmlchange STOP_N=${STOP_N}
+./xmlchange RESUBMIT=${RESUBMIT}
+./xmlchange REST_OPTION=${REST_OPTION}
+./xmlchange REST_N=${REST_N}
 ./xmlchange JOB_WALLCLOCK_TIME=${WALLTIME} --subgroup=case.run
 
 # Disable archiving

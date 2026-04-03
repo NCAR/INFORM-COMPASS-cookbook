@@ -36,8 +36,9 @@ Before you begin, you may find it useful to review the [SCAM Tips]({{ site.baseu
 
 1. Create the collections and case directories and check out your own version of the CAM code.
 ```tcsh
-> mkdir -p /glade/derecho/scratch/$USER/cases
+> mkdir -p $SCRATCH/cases
 > mkdir -p $HOME/collections
+> mkdir -p $HOME/collections/configuration
 > cd $HOME/collections
 > git clone https://github.com/jtruesdal/CAM-1 CAM_6_4_120_compass
 > cd CAM_6_4_120_compass
@@ -51,12 +52,13 @@ Before you begin, you may find it useful to review the [SCAM Tips]({{ site.baseu
 > cd INFORM-COMPASS-cookbook/SCAM_scripts
 ```
 
-1. If you changed the location of the code or case directories, edit the CESMDIR and CASEDIR variables in the following script to point to your new locations.
+1. If you changed the location of the code or case directories, edit the CESMDIR, CASEDIR, and DATADIR variables in the following script to point to your new locations.
 ```tcsh
 > vi create_CAM6_ne30_Global_Nudged_SOCRATES_Jan-Feb_2018
 > vi create_CAM6_ne30_Window_Nudged_SOCRATES_CAMIOP_Jan-15-16_RF01
 > vi create_CAM6_ne30_SCAM_RUN
 ```
+1. You can also change the start date, number of days to run, and how to break up the runs under `### Run Configuration`.
 
 1. The case title is set in the scripts using a combination of the model resolution, compset and other specifics about the experiment.  If you would like to rename the case for this experiment then edit the following line to set CASENAME as you wish.  The script will stop if you try to overwrite a previous case.
 ```tcsh
