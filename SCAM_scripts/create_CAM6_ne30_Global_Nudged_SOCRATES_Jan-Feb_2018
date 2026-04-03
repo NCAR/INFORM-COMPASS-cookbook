@@ -1,8 +1,8 @@
 #!/bin/csh -fv
 
-#------------------
-# User sets options in this section
-#------------------
+#------------------------------------------
+# *** User sets options in this section ***
+#------------------------------------------
 
 ### Full path of cesm source code and case (output) directories (see examples)
 
@@ -16,10 +16,15 @@ set CASETITLE=f.e30.cam6_4_120
 set CASEID=SOCRATES_nudgeUVTQsoc_full_withCOSP_tau6h_2months_inithist
 
 ### Run Configuration
-### Break up into 5 consecutive 10-day runs
 
 set RUN_TYPE=startup
+# Observational Data dates
+# Select a start date and run length that covers the flights
+# you are working with.
+# To begin, start CAM 2 weeks before SOCRATES to bring it into
+# a quasi-equilibrated state
 set STARTDATE=2018-01-01
+# Break up into 5 consecutive 10-day runs
 set STOP_OPTION=ndays
 set STOP_N=10
 set RESUBMIT=5
@@ -56,11 +61,15 @@ set EXP=100.cosp
 #RF13	19 Feb 2018	22:45–06:42
 #RF14	21 Feb 2018	22:40–06:48
 #RF15	24 Feb 2018	01:50–08:41
+#------------------------------------------
+# *** User set options continue at the namelist section
+#------------------------------------------
 
-#------------------
-# Make sure that the user has configured a PBS_ACCOUNT environment variable
-#------------------
+#------------------------------------------
+# User should not need to set any options in this section
+#------------------------------------------
 
+### Make sure that the user has configured a PBS_ACCOUNT environment variable
 if ( ! $?PBS_ACCOUNT ) then
     echo "Account must be set as an environment var in your $HOME/.tcshrc file"
     exit 1
@@ -69,25 +78,19 @@ else
     echo $PBS_ACCOUNT
 endif
 
-#------------------
-# User should not need to set any options in this section
-#------------------
 
+### Create full casename
 cd  $CASEDIR
-
-#Create full casename
 set CASENAME=${CASETITLE}.${COMPSET}.${RES}.${CASEID}.${EXP}
 
-#------------------
-# create case - must be called with a project
-#------------------
 
+### create case - must be called with a project
 $CESMDIR/cime/scripts/create_newcase --project $PBS_ACCOUNT --compset $COMPSET  --res $RES --compiler $COMPILER --case $CASEDIR/$CASENAME  --run-unsupported --walltime ${WALLTIME} --queue ${QUEUE} ${PES}
 
 cd  $CASEDIR/$CASENAME
 
-### Set build and run directories to be under case directory.
 
+### Set build and run directories to be under case directory.
 set RUNDIR=${DATADIR}/${CASENAME}/run
 ./xmlchange RUNDIR=$RUNDIR
 ./xmlchange EXEROOT=${CASEDIR}/${CASENAME}/bld
@@ -106,23 +109,19 @@ set RUNDIR=${DATADIR}/${CASENAME}/run
 
 # Disable archiving
 ./xmlchange DOUT_S='FALSE'
-
  
-### Append to CAM configure options
+# Append to CAM configure options
 ./xmlchange ROF_NCPL=`./xmlquery  --value "ATM_NCPL"`
 ./xmlchange GLC_NCPL=`./xmlquery  --value "ATM_NCPL"`
 ./xmlchange GMAKE_J=32
 ./xmlchange --append CAM_CONFIG_OPTS=-cosp
 
-#------------------
-# Setup Case
-#------------------
-
+### Setup Case
 ./*setup
 
-#------------------
-# Namelist setup
-#------------------
+#------------------------------------------
+# Namelist setup - continue user setup here
+#------------------------------------------
 
 cat > user_nl_cam << EOF
 ! Users should add all user specific namelist changes below in the form of 
@@ -261,14 +260,16 @@ EOFclm
 #reprosum_diffmax=1.0e-14
 #reprosum_recompute=.true.
 #EOFcpl
-#------------------
+
+
+#------------------------------------------
 # Build
-#------------------
+#------------------------------------------
 
 ./*.build
 
 mkdir -p $RUNDIR/timing/checkpoints
 
-### Submit to Queue (If you have one)
+# Submit to Queue (If you have one)
 ./case.submit
 

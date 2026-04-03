@@ -1,8 +1,8 @@
 #!/bin/csh -fv
 
-#------------------
-# User sets options in this section
-#------------------
+#------------------------------------------
+# *** User sets options in this section ***
+#------------------------------------------
 
 ### Full path of cesm source code and case (output) directories (see examples)
 
@@ -65,10 +65,15 @@ set GET_REFCASE=TRUE
 #RF13	19 Feb 2018	22:45–06:42
 #RF14	21 Feb 2018	22:40–06:48
 #RF15	24 Feb 2018	01:50–08:41
+#------------------------------------------
+# *** User set options continue at the namelist section
+#------------------------------------------
 
-#------------------
-# Make sure that the user has configured a PBS_ACCOUNT environment variable
-#------------------
+#------------------------------------------
+# User should not need to set any options in this section
+#------------------------------------------
+
+### Make sure that the user has configured a PBS_ACCOUNT environment variable
 
 if ( ! $?PBS_ACCOUNT ) then
     echo "Account must be set as an environment var in your $HOME/.tcshrc file"
@@ -78,19 +83,12 @@ else
     echo $PBS_ACCOUNT
 endif
 
-
-#------------------
-# User should not need to set any options in this section
-#------------------
+#Create full casename
 
 cd  $CASEDIR
-
-#Create full casename
 set CASENAME=${CASETITLE}.${COMPSET_TITLE}.${RES}.${CASEID}.${EXP}
 
-#------------------
-# create case
-#------------------
+### create case
 
 $CESMDIR/cime/scripts/create_newcase --project $PBS_ACCOUNT --compset $COMPSET  --res $RES --compiler $COMPILER --case $CASEDIR/$CASENAME  --run-unsupported --walltime ${WALLTIME} --queue ${QUEUE} ${PES}
 
@@ -132,15 +130,12 @@ set RUNDIR=${CASEDIR}/${CASENAME}/run
 ./xmlchange PTS_LON=${PTS_LON}
 ./xmlchange PTS_LAT=${PTS_LAT}
 
-#------------------
-# Setup Case
-#------------------
-
+### Setup Case
 ./*setup
 
-#------------------
-# Namelist setup
-#------------------
+#------------------------------------------
+# Namelist setup - continue user setup here
+#------------------------------------------
 
 cat > user_nl_cam << EOF
 inithist = 'yearly'
@@ -243,10 +238,10 @@ EOFclm
 #reprosum_diffmax=1.0e-14
 #reprosum_recompute=.true.
 #EOFcpl
-#------------------
-# Build
-#------------------
 
+#------------------------------------------
+# Build
+#------------------------------------------
 ./*.build
 
 mkdir -p $RUNDIR/timing/checkpoints
