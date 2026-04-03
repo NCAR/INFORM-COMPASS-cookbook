@@ -1,7 +1,6 @@
 ---
 layout: default # Tells Jekyll to wrap this content with _layouts/default.html
 title: Scam Tips # Shows up as the text in the browser tab
-permalink: /scam_tips/ # Allows _layouts/default.html to find this page.
 ---
 
 # Scam Tips
