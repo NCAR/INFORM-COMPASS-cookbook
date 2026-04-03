@@ -14,6 +14,8 @@ banner-button-url: https://github.com/NCAR/INFORM-COMPASS-cookbook
   <img src="https://img.shields.io/badge/updates-CHANGELOG-4a69bd" alt="Changelog">
 </a> &nbsp; &nbsp;
   <img src="https://img.shields.io/badge/Status-under%20development-yellow" alt="Status Badge">
+<!-- Placeholder for a future DOI badge
+        [![DOI](https://img.shields.io/badge/DOI-10.#####)](https://doi.org/10.#####)-->
 
 ### Introduction
 

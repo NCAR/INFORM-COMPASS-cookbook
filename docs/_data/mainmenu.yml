@@ -1,12 +1,19 @@
 menu:
   - title: Accessing Derecho
-    url: pages/derecho
-#    submenu:
-#      - title: Submenu Item
-#        url: /pages/submenu.html
-#  - title: Updating the Main Menu
-#    url: /pages/main-menu.html
-#  - title: Local Development
-#    url: /pages/local-development.html
-#  - title: Support
-#    url: /pages/support.html
+    url: /INFORM-COMPASS-cookbook/pages/derecho
+  - title: Viewing a Jupyter Notebook
+    url: /INFORM-COMPASS-cookbook/pages/jupyter_notebook
+  - title: Configure SCAM
+    url: /INFORM-COMPASS-cookbook/pages/scam
+  - title: Run SCAM nudging
+    url: /INFORM-COMPASS-cookbook/pages/scam_nudge
+    submenu:
+      - title: Run SCAMtest
+        url: /INFORM-COMPASS-cookbook/pages/scam_test
+  - title: Help
+#    url: /INFORM-COMPASS-cookbook/pages/...
+    submenu:
+      - title: SCAM Tips
+        url: /INFORM-COMPASS-cookbook/pages/scam_tips
+      - title: Git Tips
+        url: /INFORM-COMPASS-cookbook/pages/git_tips
