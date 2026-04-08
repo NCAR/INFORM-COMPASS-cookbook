@@ -33,11 +33,11 @@ Before you begin, you may find it useful to review the [SCAM Tips]({{ site.baseu
 
 #### Configure your work area
 
-1. Create the collections and case directories and check out your own version of the CAM code.
+1. Create the collections and cases directories and check out your own version of the CAM code.
 ```tcsh
 > mkdir -p $SCRATCH/cases
 > mkdir -p $HOME/collections
-> mkdir -p $HOME/collections/cases
+> mkdir -p $HOME/cases
 > cd $HOME/collections
 > git clone https://github.com/jtruesdal/CAM-1 CAM_6_4_120_compass
 > cd CAM_6_4_120_compass

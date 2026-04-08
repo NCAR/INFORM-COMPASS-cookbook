@@ -7,7 +7,7 @@
 ### Full path of cesm source code and case (output) directories (see examples)
 
 set CESMDIR=${HOME}/collections/CAM_6_4_120_compass
-set CASEDIR=${HOME}/collections/cases
+set CASEDIR=${HOME}/cases
 
 ### Case Name
 
