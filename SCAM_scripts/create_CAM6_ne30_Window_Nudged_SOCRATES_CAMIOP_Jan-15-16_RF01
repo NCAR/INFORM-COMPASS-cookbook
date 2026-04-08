@@ -7,8 +7,7 @@
 ### Full path of cesm source code and case (output) directories (see examples)
 
 set CESMDIR=${HOME}/collections/CAM_6_4_120_compass
-set CASEDIR=${HOME}/collections/configuration
-set DATADIR=${SCRATCH}/cases
+set CASEDIR=${HOME}/collections/cases
 
 ### Case Name
 
@@ -85,15 +84,9 @@ $CESMDIR/cime/scripts/create_newcase --project $PBS_ACCOUNT --compset $COMPSET  
 
 cd  $CASEDIR/$CASENAME
 
-### Set build and run directories to be under case directory.
-set RUNDIR=${DATADIR}/${CASENAME}/run
-
 #------------------
 # XMLCHANGE OPTIONS HERE
 #------------------
-./xmlchange RUNDIR=$RUNDIR
-./xmlchange EXEROOT=${CASEDIR}/${CASENAME}/bld
-
 ./xmlchange ROF_NCPL=`./xmlquery  --value "ATM_NCPL"`
 ./xmlchange GLC_NCPL=`./xmlquery  --value "ATM_NCPL"`
 ./xmlchange GMAKE_J=32
@@ -266,7 +259,7 @@ EOFclm
 #------------------------------------------
 ./*.build
 
-mkdir -p $RUNDIR/timing/checkpoints
+mkdir -p $EXEROOT/../run/timing/checkpoints
 
 ### Submit to Queue (If you have one)
 ./case.submit

@@ -37,7 +37,7 @@ Before you begin, you may find it useful to review the [SCAM Tips]({{ site.baseu
 ```tcsh
 > mkdir -p $SCRATCH/cases
 > mkdir -p $HOME/collections
-> mkdir -p $HOME/collections/configuration
+> mkdir -p $HOME/collections/cases
 > cd $HOME/collections
 > git clone https://github.com/jtruesdal/CAM-1 CAM_6_4_120_compass
 > cd CAM_6_4_120_compass
