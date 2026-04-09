@@ -120,7 +120,7 @@ cat > user_nl_cam << EOF
 ! Users should add all user specific namelist changes below in the form of 
 ! namelist_var = new_namelist_value 
  
-inithist = 'CAMIOP'
+inithist = '6-HOURLY'
 avgflag_pertape = 'I','I','I'
 mfilt               =       48,     48,     48
 nhtfrq              =        1,     1,     1
@@ -141,13 +141,13 @@ Nudge_File_Template    ='ERA5_x_ne30np4_L32_rgC2_WO.%y-%m-%d-%s.nc'
 Nudge_Force_Opt        = 1
 Nudge_Times_Per_Day    = 24
 Model_Times_Per_Day    = 48
-Nudge_Uprof  =2
+Nudge_Uprof  =1
 Nudge_Ucoef  =0.1667
-Nudge_Vprof  =2
+Nudge_Vprof  =1
 Nudge_Vcoef  =0.1667
-Nudge_Tprof  =2
+Nudge_Tprof  =1
 Nudge_Tcoef  =0.1667
-Nudge_Qprof  =2
+Nudge_Qprof  =1
 Nudge_Qcoef  =0.1667
 Nudge_PSprof =0
 Nudge_PScoef =0
@@ -157,20 +157,6 @@ Nudge_Beg_Day  =1
 Nudge_End_Year =2018
 Nudge_End_Month=2
 Nudge_End_Day  =28
-
-Nudge_Hwin_lat0    =-50.0
-Nudge_Hwin_latWidth=30.
-Nudge_Hwin_latDelta=3.
-Nudge_Hwin_lon0    = 150
-Nudge_Hwin_lonWidth=40.
-Nudge_Hwin_lonDelta=3.
-Nudge_Hwin_Invert  =.true.
-
-Nudge_Vwin_Hindex  =33.
-Nudge_Vwin_Hdelta  =0.001
-Nudge_Vwin_Lindex  =32.
-Nudge_Vwin_Ldelta  =0.001
-Nudge_Vwin_Invert  =.false.
 
 ext_frc_specifier              = 'H2O    -> /glade/p/cesmdata/cseg/inputdata/atm/cam/chem/emis/elev/H2OemissionCH4oxidationx2_3D_L70_1849-2101_CMIP6ensAvg_SSP3-7.0_c190403.nc',
          'num_a1 -> /glade/p/cesmdata/cseg/inputdata/atm/cam/chem/emis/emissions_ssp370/emissions-cmip6-ScenarioMIP_IAMC-AIM-ssp370-1-1_num_so4_a1_anthro-ene_vertical_mol_175001-210101_0.9x1.25_c20190222.nc',
