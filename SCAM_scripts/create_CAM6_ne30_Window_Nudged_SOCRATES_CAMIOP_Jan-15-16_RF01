@@ -20,16 +20,16 @@ set RUN_TYPE=hybrid
 
 #### Select a startdate and run_refdate that corresponds with
 #### a flight date below
-set RUN_STARTDATE=2018-01-15
-set RUN_REFDATE=2018-01-15
-set EXP=rf01.cosp
+set RUN_STARTDATE=2018-01-15 # RF01
+set RUN_REFDATE=2018-01-15 # RF01
+set EXP=rf01.cosp # RF01
 
 set STOP_OPTION=ndays
 set STOP_N=3
 set REST_OPTION=${STOP_OPTION}
 set REST_N=${STOP_N}
 set RUN_REFCASE=f.e30.cam6_4_120.FHIST_BGC.ne30_ne30_mg17.SOCRATES_nudgeUVTQsoc_full_withCOSP_tau6h_2months_inithist.100.cosp
-set RUN_REFDIR=/glade/derecho/scratch/$USER/cases/${RUN_REFCASE}/run
+set RUN_REFDIR=$SCRATCH/${RUN_REFCASE}/run
 set GET_REFCASE=TRUE
 
 ### Standard Run Settings
@@ -262,7 +262,8 @@ EOFclm
 #------------------------------------------
 ./*.build
 
-mkdir -p $EXEROOT/../run/timing/checkpoints
+set RUNDIR=`./xmlquery --value RUNDIR`
+mkdir -p $RUNDIR/timing/checkpoints
 
 ### Submit to Queue (If you have one)
 ./case.submit

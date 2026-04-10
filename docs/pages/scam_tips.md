@@ -5,6 +5,11 @@ title: Scam Tips # Shows up as the text in the browser tab
 
 ### Scam Tips
 
+#### To get more info on how your case will be run, you can preview a run
+```tcsh
+> ./preview_run
+```
+
 #### To rerun a case if you change something (like the flight and date)
 ```tcsh
 > ./case.build --clean-all

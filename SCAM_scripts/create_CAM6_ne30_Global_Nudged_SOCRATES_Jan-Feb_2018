@@ -88,6 +88,7 @@ $CESMDIR/cime/scripts/create_newcase --project $PBS_ACCOUNT --compset $COMPSET  
 
 cd  $CASEDIR/$CASENAME
 
+
 #------------------
 # XMLCHANGE OPTIONS HERE
 #------------------
@@ -247,7 +248,8 @@ EOFclm
 
 ./*.build
 
-mkdir -p $EXEROOT/../run/timing/checkpoints
+set RUNDIR=`./xmlquery --value RUNDIR`
+mkdir -p $RUNDIR/timing/checkpoints
 
 # Submit to Queue (If you have one)
 ./case.submit
