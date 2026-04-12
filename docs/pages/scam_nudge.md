@@ -105,7 +105,7 @@ You also might want to change the filename to reflect the new flight number and 
 1. Run the second experiment to generate IOP data for SCAM.
 ```tcsh
 > cd $HOME/collections/INFORM-COMPASS-cookbook/SCAM_scripts
-> qcmd -- ./create_CAM6_ne30_Window_Nudged_SOCRATES_CAMIOP_<flight designation>
+> qcmd -- ./create_CAM6_ne30_Window_Nudged_SOCRATES_CAMIOP_<flight>
 ```
 
 1. See what the second experiment generated
@@ -116,7 +116,7 @@ You also might want to change the filename to reflect the new flight number and 
 #### Run the third experiment, the SCAM run
 1. Set up for the third experiment. SCAM will accept a global IOP file and use namelist variables to extract the correct column inline. The `*h1i*nc` IOP files from the second run contain the variables that SCAM needs (Ps, u, v, etc.)
    * Copy the IOP file from exp 2 for the correct dates to $SCRATCH
-For example, RF01 takes off on Jan 15 and lands on Jan 16 so concatenate those two days to an RF01 iopfile using ncrcat. Change the dates and flights as needed below.
+For example, RF01 takes off on Jan 15 and lands on Jan 16 so concatenate those two days to an RF01 iopfile using ncrcat. Change the dates and flights as needed below. Flight should be lower case, eg rf01
    ```tcsh
    > module load nco (if you haven't already)
    > ncrcat $SCRATCH/f.e30.cam6_4_120.FHIST_BGC.ne30_ne30_mg17.SOCRATES_nudgeUVTQwindow_withCOSP_tau6h_3days_camiop.<flight>.cosp/run/f.e*window*h1i*2018-01-1[56]*nc $SCRATCH/<flight>.IOP.nc
@@ -126,6 +126,13 @@ For example if you know the index of the column you need (correct lat/lon) then 
    ```tcsh
    ncrcat -d ncol,32326 -d ncol_d,32326 ...
    ```
+
+   * Copy the netCDF file to $SCRATCH. The path name is too long to reference it in place.
+   ```tcsh
+   cd $SCRATCH
+   cp f.e30.cam6_4_120.FHIST_BGC.ne30_ne30_mg17.SOCRATES_nudgeUVTQwindow_withCOSP_tau6h_3days_camiop.<flight>.cosp/run/f.e30.cam6_4_120.FHIST_BGC.ne30_ne30_mg17.SOCRATES_nudgeUVTQwindow_withCOSP_tau6h_3days_camiop.<flight>.cosp.cam.i.<date>-00000.nc f.e30.cam6_4_120.FHIST_BGC.ne30_ne30_mg17.SOCRATES_nudgeUVTQwindow_withCOSP_tau6h_3days_camiop.<flight>.cosp.cam.i.<date>-00000.nc
+   ```
+
    * Modify create_CAM6_ne30_SCAM_RUN script to set flight information. The PTS_LAT and PTS_LON variables in the script should point to the column you would like to simulate in the SOCRATES area.
    ```tcsh
    > cd $HOME/collections/INFORM-COMPASS-cookbook/SCAM_scripts
