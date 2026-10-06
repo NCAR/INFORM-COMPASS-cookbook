@@ -8,10 +8,10 @@ title: Configure SCAM # Shows up as the text in the browser tab
 #### Introduction
 SCAM, the [Single Column Atmosphere Model](https://www.cesm.ucar.edu/models/simple/scam) is a single column model version of the [Community Atmospheric Model (CAM)](https://www.cesm.ucar.edu/models/cam), a global atmosphere model developed at NSF NCAR for the weather and climate research communities.
 
-This page describes the basic setup for running SCAM. Once you have this configured you can [Create Nudged IOP forcing using CAM for use with SCAM](https://ncar.github.io/INFORM-COMPASS-cookbook/pages/scam_nudge/) or [run scamTEST](/https://ncar.github.io/INFORM-COMPASS-cookbook/pages/scam_test/) to ensure your setup is correct.
+This page describes the basic setup for running SCAM. Once you have this configured you can [Create Nudged IOP forcing using CAM for use with SCAM](https://ncar.github.io/INFORM-COMPASS-cookbook/pages/scam_nudge) or [run scamTEST](/https://ncar.github.io/INFORM-COMPASS-cookbook/pages/scam_test) to ensure your setup is correct.
 
 #### Login to Derecho
-SCAM can be run from the Derecho supercomputer at NCAR. If you haven't already, [login to derecho and clone the repo](/https://ncar.github.io/INFORM-COMPASS-cookbook/pages/derecho/)
+SCAM can be run from the Derecho supercomputer at NCAR. If you haven't already, [login to derecho and clone the repo](/https://ncar.github.io/INFORM-COMPASS-cookbook/pages/derecho)
 
 #### Set up your environment
 Load the nco module so you can access ncrcat (which you will use during the third experiment setup).

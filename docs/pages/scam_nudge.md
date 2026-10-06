@@ -29,7 +29,7 @@ SCAM_scripts/create_CAM6_ne30_SCAM_RUN
 
 The steps outlined below place the CAM code and COMPASS-cookbook underneath your $HOME directory.  The 3 CAM/SCAM cases that are created from the cookbook scripts are located under your scratch space on Derecho.  The CAM experiments will generated a terabyte of data which can be handled by $SCRATCH.  These initial cases are writing out a lot of data for analysis as we are fine tuning our procedures. The final requirements will be much less. Since the SCAM experiment is just a single column it always puts out much smaller data sets and can be easily run on any filesystem.
 
-Before you begin, you may find it useful to review the [SCAM Tips](https://ncar.github.io/INFORM-COMPASS-cookbook/pages/scam_tips/) page.
+Before you begin, you may find it useful to review the [SCAM Tips](https://ncar.github.io/INFORM-COMPASS-cookbook/pages/scam_tips) page.
 
 #### Configure your work area
 
@@ -76,7 +76,7 @@ Before you begin, you may find it useful to review the [SCAM Tips](https://ncar.
 > cd $HOME/collections/INFORM-COMPASS-cookbook/SCAM_scripts
 > qcmd -- ./create_CAM6_ne30_Global_Nudged_SOCRATES_Jan-Feb_2018
 ```
-You can check the status of the run, or delete it, using the scam commands described on the [Configure Scam](https://ncar.github.io/INFORM-COMPASS-cookbook/pages/scam/) page.
+You can check the status of the run, or delete it, using the scam commands described on the [Configure Scam](https://ncar.github.io/INFORM-COMPASS-cookbook/pages/scam) page.
 
  * After the first experiment finishes, you should have output data underneath $SCRATCH/your_case_name/run.  See what you have!
 ```tcsh

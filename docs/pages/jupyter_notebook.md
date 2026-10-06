@@ -7,7 +7,7 @@ title: Viewing a Jupyter Notebook # Shows up as the text in the browser tab
 This cookbook can be run from /glade on Derecho.
 
 #### Login to Derecho
-If you haven't already, [login to derecho and clone the repo](https://ncar.github.io/INFORM-COMPASS-cookbook/pages/derecho/)
+If you haven't already, [login to derecho and clone the repo](https://ncar.github.io/INFORM-COMPASS-cookbook/pages/derecho)
 
 If you do not have access to derecho, clone the repo locally and then modify the
 notebook to access the data files via GDEX:
