@@ -7,7 +7,17 @@ title: Viewing a Jupyter Notebook # Shows up as the text in the browser tab
 This cookbook can be run from /glade on Derecho.
 
 #### Login to Derecho
-If you haven't already, [login to derecho and clone the repo]({{ site.baseurl }}/derecho/)
+If you haven't already, [login to derecho and clone the repo](https://ncar.github.io/INFORM-COMPASS-cookbook/pages/derecho/)
+
+If you do not have access to derecho, clone the repo locally and then modify the
+notebook to access the data files via GDEX:
+`process_data_products_utils.py`
+```python
+import xarray as xr
+filepath_sfc = 'https://data.gdex.ucar.edu/d633000/e5.oper.an.sfc/'
+filepath_pl = 'https://data.gdex.ucar.edu/d633000/e5.oper.an.pl/'
+ds_sst = xr.open_dataset(get_matching_files(f"{filepath_sfc}{dir_date}/*_sstk.*.nc", start_dt, end_dt), combine='by_coords', engine='zarr')
+```
 
 #### Set up your environment
 Load some standard modules and set up your python environment.

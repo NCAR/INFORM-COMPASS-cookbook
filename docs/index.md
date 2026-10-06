@@ -23,9 +23,16 @@ banner-button-url: https://github.com/NCAR/INFORM-COMPASS-cookbook
   </p>
 </div>
 
-The goal of INFORM-COMPASS is to ....
+The goals of INFORM-COMPASS are to:
+* **Bridge Earth System Modeling and Observational Data:**
+  Provide open-source tools, standardized workflows, and Python-based Jupyter notebooks ("cookbooks") that integrate NCAR Earth system model outputs (such as the **Community Earth System Model / CESM**) with observational data streams (such as those from the **NSF NCAR research aircraft**
 
-This cookbook ....
+
+* **Standardize Data Analytics:**
+  Enable researchers, data scientists, and decision-makers to process, analyze, and visualize complex multi-scale atmospheric and land-surface data consistently and efficiently.
+
+* **Support Convergence Research:**
+  Accelerate multidisciplinary research in Earth system science, climate impact analysis, and ecological forecasting by creating accessible, reproducible, and scalable data pipelines.
 
 #### CITATION
 
